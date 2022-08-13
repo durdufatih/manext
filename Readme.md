@@ -23,10 +23,9 @@ In the next section I will use random picture api. You can find roadmap at below
 - [] Dark mode
 - [] Notification of Photographer image
 
-## Video
+## Preview
 You can find preview of actual completed task
-<video src="/readme-files/preview.mp4" controls="controls" style="max-width: 500px;">
-</video>
+<video width="320" height="240"><source src="/readme-files/preview.mp4" type="video/mp4"/></video>
 
 
 ## Used Technologies
@@ -37,7 +36,7 @@ You can find preview of actual completed task
 
 ## Screenshots
 If you want to contribute to project we can develop together
-You can access to me from :mfdurdu@gmail.com
+You can access to me from :mfdurdu@gmail.com 
 Linkedin address: https://www.linkedin.com/in/mehmet-fatih-durdu-05b84550/
 
 
