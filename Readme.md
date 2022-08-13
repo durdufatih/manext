@@ -25,8 +25,8 @@ In the next section I will use random picture api. You can find roadmap at below
 
 ## Preview
 You can find preview of actual completed task
-![Preview](/readme-files/preview.gif)
-<img src="./readme-files/preview.gif?raw=true" width="200px"/>
+
+
 <p align="center">
   <img src="./readme-files/preview.gif" alt="animated" />
 </p>
