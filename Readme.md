@@ -25,7 +25,8 @@ In the next section I will use random picture api. You can find roadmap at below
 
 ## Video
 You can find preview of actual completed task
-![Home Page](/readme-files/preview.mp4)
+<video src="/readme-files/preview.mp4" controls="controls" style="max-width: 500px;">
+</video>
 
 
 ## Used Technologies
