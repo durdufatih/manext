@@ -1,5 +1,6 @@
 package com.fatihdurdu.manext
 
+import android.Manifest
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
@@ -42,15 +43,21 @@ import com.fatihdurdu.manext.data.ImageResponseListItem
 import com.fatihdurdu.manext.ui.theme.ManextTheme
 import com.fatihdurdu.manext.viewmodel.ListViewModel
 import com.fatihdurdu.manext.viewmodel.state.ListState
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 
 
 @AndroidEntryPoint
+@ExperimentalPermissionsApi
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,7 +134,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun ListItems(list: ImageResponseList) {
-        LazyColumn() {
+        LazyColumn {
             items(items = list, itemContent = {
                 ContentCard(it)
             })
@@ -135,6 +142,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
+
     fun ContentCard(imageResponseListItem: ImageResponseListItem) {
         Card(
             modifier = Modifier
@@ -185,7 +193,7 @@ class MainActivity : ComponentActivity() {
 
             }
             Surface(modifier = Modifier.padding(1.dp)) {
-                Column() {
+                Column {
                     Text(
                         text = imageResponseListItem.user.name,
                         fontWeight = FontWeight.Bold
@@ -198,7 +206,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
-            Surface() {
+            Surface {
                 Text(
                     text = "8 min",
                     fontWeight = FontWeight.Bold,
@@ -243,9 +251,17 @@ class MainActivity : ComponentActivity() {
                 .padding(start = 10.dp, end = 10.dp)
         ) {
 
+            val permissionWrite =
+                rememberPermissionState(permission = Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
             IconButton(onClick = {
-                saveButton(imageResponseListItem.urls.regular)
+                if (permissionWrite.status.isGranted) {
+                    saveButton(imageResponseListItem.urls.regular)
+                } else {
+
+                    permissionWrite.launchPermissionRequest()
+                }
+
 
             }) {
                 Icon(
@@ -276,7 +292,7 @@ class MainActivity : ComponentActivity() {
             addCategory(Intent.CATEGORY_DEFAULT)
             flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            putExtra(Intent.EXTRA_TEXT, url);
+            putExtra(Intent.EXTRA_TEXT, url)
             type = "text/plain"
         }
 
@@ -286,50 +302,54 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    private fun saveButton(url: String) {
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val bitmap = downloadFile(url)
+            withContext(Dispatchers.Main) {
+                saveMediaToStorage(bitmap)
+            }
+        }
 
 
-
-
-private fun saveButton(url: String) {
-
-    GlobalScope.launch {
-        val loader = ImageLoader(this@MainActivity)
-        val request = ImageRequest.Builder(this@MainActivity)
-            .data(url)
-            .allowHardware(false) // Disable hardware bitmaps.
-            .build()
-
-        val result = (loader.execute(request) as SuccessResult).drawable
-        val bitmap = (result as BitmapDrawable).bitmap
-        saveMediaToStorage(bitmap)
     }
 
 
-}
+    private suspend fun downloadFile(url: String): Bitmap =
+        withContext(Dispatchers.Default) {
+            val loader = ImageLoader(this@MainActivity)
+            val request = ImageRequest.Builder(this@MainActivity)
+                .data(url)
+                .allowHardware(false) // Disable hardware bitmaps.
+                .build()
+
+            val result = (loader.execute(request) as SuccessResult).drawable
+            return@withContext (result as BitmapDrawable).bitmap
+        }
 
 
-private fun saveMediaToStorage(bitmap: Bitmap) {
-    val filename = "${System.currentTimeMillis()}.jpg"
-    var fos: OutputStream?
+    private fun saveMediaToStorage(bitmap: Bitmap) {
+        val filename = "${System.currentTimeMillis()}.jpg"
+        val fos: OutputStream?
 
-    val imagesDir =
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath.plus(
-            "/MANEXT"
-        )
-    val directory = File(imagesDir)
-    if (!directory.exists())
-        directory.mkdir()
-    val image = File(imagesDir, filename)
-    fos = FileOutputStream(image)
+        val imagesDir =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath.plus(
+                "/MANEXT"
+            )
+        val directory = File(imagesDir)
+        if (!directory.exists())
+            directory.mkdir()
+        val image = File(imagesDir, filename)
+        fos = FileOutputStream(image)
 
-    fos?.use {
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
+        fos.use {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
 
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(this@MainActivity, "Saved $filename", Toast.LENGTH_SHORT).show()
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(this@MainActivity, "Saved $filename", Toast.LENGTH_SHORT).show()
+            }
         }
     }
-}
 
 
 }
