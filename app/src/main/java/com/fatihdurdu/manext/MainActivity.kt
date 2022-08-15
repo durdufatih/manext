@@ -1,13 +1,17 @@
 package com.fatihdurdu.manext
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -117,7 +121,7 @@ class MainActivity : ComponentActivity() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "M", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+            Text(text = "M", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
             Text(text = "Feed", fontWeight = FontWeight.ExtraBold)
             IconButton(onClick = { /*TODO*/ }) {
 
@@ -142,7 +146,6 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-
     fun ContentCard(imageResponseListItem: ImageResponseListItem) {
         Card(
             modifier = Modifier
@@ -271,7 +274,7 @@ class MainActivity : ComponentActivity() {
                 )
 
             }
-            IconButton(onClick = { openShare(imageResponseListItem.urls.thumb) }) {
+            IconButton(onClick = { openShare(imageResponseListItem.urls.regular) }) {
 
                 Icon(
                     Icons.Default.Share,
@@ -286,18 +289,30 @@ class MainActivity : ComponentActivity() {
 
     private fun openShare(url: String) {
 
+        CoroutineScope(Dispatchers.IO).launch {
+            val bitmap = downloadFile(url)
+            val path = MediaStore.Images.Media.insertImage(
+                contentResolver,
+                bitmap,
+                "Title",
+                ""
+            )
+            withContext(Dispatchers.Main) {
 
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            addCategory(Intent.CATEGORY_DEFAULT)
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            putExtra(Intent.EXTRA_TEXT, url)
-            type = "text/plain"
+                val intent = Intent(Intent.ACTION_SEND)
+                intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(path))
+                intent.putExtra(Intent.EXTRA_TEXT, "Manext app sharing image with you")
+                intent.type = "image/*"
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+                try {
+                    startActivity(Intent.createChooser(intent, "Share"))
+                } catch (ex: ActivityNotFoundException) {
+                    Log.d("Hello", "Error:${ex.message}")
+                }
+            }
         }
 
-        val shareIntent = Intent.createChooser(sendIntent, "Image url")
-        startActivity(shareIntent)
 
     }
 
